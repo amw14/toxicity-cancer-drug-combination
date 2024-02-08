@@ -1,0 +1,9 @@
+# ignore ALL files in ANY directory named the following:
+data/
+data_processed/
+env/
+__pycache__/
+Tox21/
+
+# ignore the following files
+.DS_Store
