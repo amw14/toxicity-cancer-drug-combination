@@ -86,6 +86,30 @@ def get_sider_data():
     return sider_cid_to_drugs_df, sider_all_side_effects_df
 
 
+# Get the drug name to all unique side effects dictionary
+# INPUT:
+#   sider_cid_to_drugs_df: (DataFrame) the CID to drug name mapping
+#   sider_all_side_effects_df: (DataFrame) the SIDER side effects data
+# OUTPUT:
+#   drug_name_to_side_effects: (dict) the drug name to all unique side effects dictionary
+# Get the unique side effect set for each drug
+def get_drug_to_side_effects(sider_cid_to_drugs_df, sider_all_side_effects_df):
+    drug_name_to_side_effects = {}
+
+    # Loop through each CID in the sider_cid_to_drugs_df
+    for index, row in sider_cid_to_drugs_df.iterrows():
+        # Get the CID
+        CID = row['CID']
+        # Get the drug name
+        drug_name = row['drug_name']
+        # Get the side effects for the CID
+        side_effects = sider_all_side_effects_df[sider_all_side_effects_df['CID_FLAT'] == CID]['Side_Effect'].values
+        # Store the side effects in the dictionary
+        drug_name_to_side_effects[drug_name] = set(side_effects)
+
+    return drug_name_to_side_effects
+
+
 # Filter the drugcomb data -- remove the drugs that are not in the SIDER data
 # INPUT:
 #   drugcomb_df: (DataFrame) the drug comb data
