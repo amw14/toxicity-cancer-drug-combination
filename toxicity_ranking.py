@@ -166,6 +166,59 @@ def jaccard_similarity(set1, set2):
     return intersection / union
 
 
+# Get the Jaccard similarity of all drug pairs
+# INPUT:
+#   unique_drug_pairs: (set) the set of unique drug pairs
+#   sider_cid_to_drugs_df: (DataFrame) the CID to drug name mapping
+#   sider_all_side_effects_df: (DataFrame) the SIDER side effects data
+# OUTPUT:
+#   drug_pair_to_jaccard: (dict) the drug pair to Jaccard similarity dictionary
+#   drug_pair_to_side_effects: (dict) the drug pair to side effects dictionary
+def drug_pair_to_jaccard_similarity(
+    unique_drug_pairs,
+    sider_cid_to_drugs_df,
+    sider_all_side_effects_df,
+):
+    # Create a dictionary to store the Jaccard similarity of each drug pair
+    drug_pair_to_jaccard = {}
+    drug_pair_to_side_effects = {}
+
+    # Loop through each drug pair in unique_drug_pairs
+    for drug_pair in unique_drug_pairs:
+        # Get the drugs in the pair
+        drug1_name, drug2_name = drug_pair
+        drug1_CID = sider_cid_to_drugs_df[sider_cid_to_drugs_df['drug_name'] == drug1_name]['CID'].values[0]
+        drug2_CID = sider_cid_to_drugs_df[sider_cid_to_drugs_df['drug_name'] == drug2_name]['CID'].values[0]
+
+        # Get the side effects of each drug
+        side_effects1 = sider_all_side_effects_df[sider_all_side_effects_df['CID_FLAT'] == drug1_CID]['Side_Effect'].values
+        side_effects2 = sider_all_side_effects_df[sider_all_side_effects_df['CID_FLAT'] == drug2_CID]['Side_Effect'].values
+
+        # Calculate the Jaccard similarity of the side effects
+        jaccard = jaccard_similarity(set(side_effects1), set(side_effects2))
+
+        # Store the Jaccard similarity in the dictionary
+        drug_pair_to_jaccard[drug_pair] = jaccard
+        drug_pair_to_side_effects[drug_pair] = (side_effects1, side_effects2)
+
+    return drug_pair_to_jaccard, drug_pair_to_side_effects
+
+
+# Get rank based on Jaccard similarity
+# INPUT:
+#   drug_pair_to_jaccard: (dict) the drug pair to Jaccard similarity dictionary
+# OUTPUT:
+#   ranked_drug_pairs: (list) the ranked drug pairs based on Jaccard similarity
+def rank_drug_pairs(drug_pair_to_jaccard):
+    # zip the drug pairs and their Jaccard similarities
+    drug_pairs = list(drug_pair_to_jaccard.keys())
+    jaccard_values = list(drug_pair_to_jaccard.values())
+    zipped = list(zip(drug_pairs, jaccard_values))
+
+    # sort the zipped list by Jaccard similarity
+    zipped.sort(key=lambda x: x[1], reverse=True)
+    return zipped
+
 
 if __name__ == "__main__":
     drugcomb_df = get_drug_comb_data(bliss=True, loewe=True, hsa=True, zip=True)
