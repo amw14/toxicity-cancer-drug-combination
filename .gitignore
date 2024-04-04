@@ -5,6 +5,7 @@ env/
 __pycache__/
 Tox21/
 results/
+old_scripts/
 
 # ignore the following files
 .DS_Store
