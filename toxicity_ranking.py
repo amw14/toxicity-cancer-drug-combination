@@ -1,4 +1,8 @@
+import numpy as np
 import pandas as pd
+import torch
+from sklearn.metrics.pairwise import cosine_similarity
+from transformers import BertTokenizer, BertModel
 
 # Get the drug comb data
 # INPUT:
@@ -86,6 +90,126 @@ def get_sider_data():
     return sider_cid_to_drugs_df, sider_all_side_effects_df
 
 
+# Get the DDInter data
+# INPUT:
+#   None
+# OUTPUT:
+# ddinter_df: (DataFrame) the DDInter severity data
+def get_ddinter_data():
+    # Get the DDInter data
+    ddinter_files = [
+        'data/DDInter/ddinter_downloads_code_A.csv',
+        'data/DDInter/ddinter_downloads_code_B.csv',
+        'data/DDInter/ddinter_downloads_code_D.csv',
+        'data/DDInter/ddinter_downloads_code_H.csv',
+        'data/DDInter/ddinter_downloads_code_L.csv',
+        'data/DDInter/ddinter_downloads_code_P.csv',
+        'data/DDInter/ddinter_downloads_code_R.csv',
+        'data/DDInter/ddinter_downloads_code_V.csv',
+    ]
+    ddinter_df = None
+    for file in ddinter_files:
+        if ddinter_df is None:
+            ddinter_df = pd.read_csv(file, sep=',')
+        else:
+            ddinter_df = pd.concat([ddinter_df, pd.read_csv(file, sep=',')], ignore_index=True)
+
+    # Convert all values in Drug_A and Drug_B columns to lowercase
+    ddinter_df['Drug_A'] = ddinter_df['Drug_A'].str.lower()
+    ddinter_df['Drug_B'] = ddinter_df['Drug_B'].str.lower()
+
+    # Remove duplicates
+    ddinter_df = ddinter_df.drop_duplicates()
+
+    return ddinter_df
+
+
+# Filter the drugcomb data -- remove the drugs that are not in the ddinter data
+# INPUT:
+#   drugcomb_df: (DataFrame) the drug comb data
+#   ddinter_df: (DataFrame) the CID to drug name mapping
+# OUTPUT:
+#   drug_syntox_df: (DataFrame) the filtered drug comb data
+#   intersection_major_pairs: (set) - drugcomb pairs with major severity in ddinter
+#   intersection_moderate_pairs: (set) - drugcomb pairs with moderate severity in ddinter 
+#   intersection_minor_pairs: (set) - drugcomb pairs with minor severity in ddinter
+#   intersection_unknown_pairs: (set) - drugcomb pairs with unknown severity in ddinter
+def find_drugcomb_ddinter_intersect(drugcomb_df, ddinter_df):
+    # Get the set of drugs in the drugcomb data and the ddinter data
+    drugcomb_drugs = set(drugcomb_df['drug_row']).union(set(drugcomb_df['drug_col']))
+    ddinter_drugs = set(ddinter_df['Drug_A']).union(set(ddinter_df['Drug_B']))
+    common_drugs = ddinter_drugs.intersection(drugcomb_drugs)
+
+    # Create filtered drugcomb data that includes only drugs that are in the intersection and the synergy scores
+    drug_syntox_df = pd.DataFrame(columns=['drug_row', 'drug_col', 'cell_line_name', 'synergy_zip', 'synergy_loewe', 'synergy_bliss', 'synergy_hsa', 'toxicity_category'])
+
+    # Print how many drugs are common between drugcomb and ddinter
+    print("Number of drugs in common between drugcomb and ddinter [lowercase enforced]: ", len(common_drugs))
+
+    # Want to find the common drug pairs between drugcomb and ddinter
+    ddinter_major_pairs_both_ways = set()
+    ddinter_moderate_pairs_both_ways = set()
+    ddinter_minor_pairs_both_ways = set()
+    ddinter_unknown_pairs_both_ways = set()
+    for index, row in ddinter_df.iterrows():
+        drug_a = row['Drug_A']
+        drug_b = row['Drug_B']
+        if row['Level'] == 'Unknown':
+            ddinter_unknown_pairs_both_ways.add((drug_a, drug_b))
+            ddinter_unknown_pairs_both_ways.add((drug_b, drug_a))
+        elif row['Level'] == 'Minor':
+            ddinter_minor_pairs_both_ways.add((drug_a, drug_b))
+            ddinter_minor_pairs_both_ways.add((drug_b, drug_a))
+        elif row['Level'] == 'Moderate':
+            ddinter_moderate_pairs_both_ways.add((drug_a, drug_b))
+            ddinter_moderate_pairs_both_ways.add((drug_b, drug_a))
+        elif row['Level'] == 'Major':
+            ddinter_major_pairs_both_ways.add((drug_a, drug_b))
+            ddinter_major_pairs_both_ways.add((drug_b, drug_a))
+        else:
+            print("Level is: " + str(row['Level']))
+    
+    intersection_major_pairs = set()
+    intersection_moderate_pairs = set()
+    intersection_minor_pairs = set()
+    intersection_unknown_pairs = set()
+    for index, row in drugcomb_df.iterrows():
+        drug_pair = (row['drug_row'], row['drug_col'])
+        reverse_drug_pair = (row['drug_col'], row['drug_row'])
+        if drug_pair in ddinter_major_pairs_both_ways and reverse_drug_pair not in intersection_major_pairs:
+            intersection_major_pairs.add(drug_pair)
+            row_to_add = [row['drug_row'], row['drug_col'], row['cell_line_name'], row['synergy_zip'], row['synergy_loewe'], row['synergy_bliss'], row['synergy_hsa'], 'Major']
+            drug_syntox_df = pd.concat([drug_syntox_df, pd.DataFrame([row_to_add], columns=['drug_row', 'drug_col', 'cell_line_name', 'synergy_zip', 'synergy_loewe', 'synergy_bliss', 'synergy_hsa', 'toxicity_category'])])
+        elif drug_pair in ddinter_moderate_pairs_both_ways and reverse_drug_pair not in intersection_moderate_pairs:
+            intersection_moderate_pairs.add(drug_pair)
+            row_to_add = [row['drug_row'], row['drug_col'], row['cell_line_name'], row['synergy_zip'], row['synergy_loewe'], row['synergy_bliss'], row['synergy_hsa'], 'Moderate']
+            drug_syntox_df = pd.concat([drug_syntox_df, pd.DataFrame([row_to_add], columns=['drug_row', 'drug_col', 'cell_line_name', 'synergy_zip', 'synergy_loewe', 'synergy_bliss', 'synergy_hsa', 'toxicity_category'])])
+        elif drug_pair in ddinter_minor_pairs_both_ways and reverse_drug_pair not in intersection_minor_pairs:
+            intersection_minor_pairs.add(drug_pair)
+            row_to_add = [row['drug_row'], row['drug_col'], row['cell_line_name'], row['synergy_zip'], row['synergy_loewe'], row['synergy_bliss'], row['synergy_hsa'], 'Minor']
+            drug_syntox_df = pd.concat([drug_syntox_df, pd.DataFrame([row_to_add], columns=['drug_row', 'drug_col', 'cell_line_name', 'synergy_zip', 'synergy_loewe', 'synergy_bliss', 'synergy_hsa', 'toxicity_category'])])
+        elif drug_pair in ddinter_unknown_pairs_both_ways and reverse_drug_pair not in intersection_unknown_pairs:
+            intersection_unknown_pairs.add(drug_pair)
+            row_to_add = [row['drug_row'], row['drug_col'], row['cell_line_name'], row['synergy_zip'], row['synergy_loewe'], row['synergy_bliss'], row['synergy_hsa'], 'Unknown']
+            drug_syntox_df = pd.concat([drug_syntox_df, pd.DataFrame([row_to_add], columns=['drug_row', 'drug_col', 'cell_line_name', 'synergy_zip', 'synergy_loewe', 'synergy_bliss', 'synergy_hsa', 'toxicity_category'])])
+        else:
+            continue
+    
+    print("Major pairs in both DrugComb and in DDInter: ", len(intersection_major_pairs))
+    print("Moderate pairs in both DrugComb and in DDInter: ", len(intersection_moderate_pairs))
+    print("Minor pairs in both DrugComb and in DDInter: ", len(intersection_minor_pairs))
+    print("Unknown toxicity pairs in both DrugComb and in DDInter: ", len(intersection_unknown_pairs))
+
+    total_num_common_pairs = len(intersection_unknown_pairs) + len(intersection_major_pairs) + \
+          len(intersection_moderate_pairs) + len(intersection_minor_pairs)
+
+    print("Total common pairs: ", total_num_common_pairs)
+    print("Total known pairs: ", total_num_common_pairs - len(intersection_unknown_pairs))
+
+    return drug_syntox_df, intersection_major_pairs, intersection_moderate_pairs, intersection_minor_pairs, intersection_unknown_pairs
+
+
+
 # Get the drug name to all unique side effects dictionary
 # INPUT:
 #   sider_cid_to_drugs_df: (DataFrame) the CID to drug name mapping
@@ -118,7 +242,7 @@ def get_drug_to_side_effects(sider_cid_to_drugs_df, sider_all_side_effects_df):
 #   filtered_drug_comb_data: (DataFrame) the filtered drug comb data
 #   common_drugs: (set) the set of common drugs in the drugcomb data and the SIDER data
 #   unique_drug_pairs: (set) the set of unique drug pairs in the filtered drug comb data
-def filter_drug_comb_data(drugcomb_df, sider_cid_to_drugs_df):
+def filter_drug_comb_data_by_sider(drugcomb_df, sider_cid_to_drugs_df):
     # Print the shape of the drugcomb data
     print("Original drugcomb data shape: ", drugcomb_df.shape)
 
@@ -204,25 +328,18 @@ def drug_pair_to_jaccard_similarity(
     return drug_pair_to_jaccard, drug_pair_to_side_effects
 
 
-# Get rank based on Jaccard similarity
+# Get rank based on similarity values
 # INPUT:
-#   drug_pair_to_jaccard: (dict) the drug pair to Jaccard similarity dictionary
+#   drug_pair_to_similarity: (dict) the drug pair to some similarity value dictionary
 # OUTPUT:
 #   ranked_drug_pairs: (list) the ranked drug pairs based on Jaccard similarity
-def rank_drug_pairs(drug_pair_to_jaccard):
-    # zip the drug pairs and their Jaccard similarities
-    drug_pairs = list(drug_pair_to_jaccard.keys())
-    jaccard_values = list(drug_pair_to_jaccard.values())
-    zipped = list(zip(drug_pairs, jaccard_values))
+def rank_drug_pairs(drug_pair_to_similarity):
+    # zip the drug pairs and their similarities
+    drug_pairs = list(drug_pair_to_similarity.keys())
+    similarity_values = list(drug_pair_to_similarity.values())
+    zipped = list(zip(drug_pairs, similarity_values))
 
-    # sort the zipped list by Jaccard similarity
+    # sort the zipped list by similarity value
     zipped.sort(key=lambda x: x[1], reverse=True)
     return zipped
 
-
-if __name__ == "__main__":
-    drugcomb_df = get_drug_comb_data(bliss=True, loewe=True, hsa=True, zip=True)
-    sider_cid_to_drugs_df, sider_all_side_effects_df = get_sider_data()
-    filtered_drug_comb_data, common_drugs, unique_drug_pairs = filter_drug_comb_data(drugcomb_df, sider_cid_to_drugs_df)
-
-    
