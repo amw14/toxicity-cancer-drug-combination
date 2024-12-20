@@ -3,7 +3,6 @@ data/
 data_processed/
 env/
 __pycache__/
-Tox21/
 results/
 old_scripts/
 
