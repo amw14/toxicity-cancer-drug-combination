@@ -1,8 +1,7 @@
+import math
 import numpy as np
 import pandas as pd
-import torch
-from sklearn.metrics.pairwise import cosine_similarity
-from transformers import BertTokenizer, BertModel
+from scipy.stats import norm
 
 # Get the drug comb data
 # INPUT:
@@ -35,36 +34,24 @@ def get_drug_comb_data(bliss=False, loewe=False, hsa=False, zip=False):
                             & DYALL_filter]
     #print("Shape after filtering out malaria and SARS-CoV-2 and Ebola data: ", drugcomb_df.shape)
     
-    # Filter out antagonistic values
+    # Do not filter out antagonistic values, only filter out NaN values
     if bliss:
         # drop any rows where synergy_bliss cannot be converted to a number
         drugcomb_df['synergy_bliss'] = pd.to_numeric(drugcomb_df['synergy_bliss'], errors='coerce')
         drugcomb_df = drugcomb_df.dropna(subset=['synergy_bliss'])
-        drugcomb_df = drugcomb_df[drugcomb_df['synergy_bliss'] >= 0]
-        #print("Shape after filtering out antagonistic bliss: ", drugcomb_df.shape)
     if loewe:
         drugcomb_df['synergy_loewe'] = pd.to_numeric(drugcomb_df['synergy_loewe'], errors='coerce')
         drugcomb_df = drugcomb_df.dropna(subset=['synergy_loewe'])
-        drugcomb_df = drugcomb_df[drugcomb_df['synergy_loewe'] >= 0]
-        #print("Shape after filtering out antagonistic loewe: ", drugcomb_df.shape)
     if hsa:
         drugcomb_df['synergy_hsa'] = pd.to_numeric(drugcomb_df['synergy_hsa'], errors='coerce')
         drugcomb_df = drugcomb_df.dropna(subset=['synergy_hsa'])
-        drugcomb_df = drugcomb_df[drugcomb_df['synergy_hsa'] >= 0]
-        #print("Shape after filtering out antagonistic hsa: ", drugcomb_df.shape)
     if zip:
         drugcomb_df['synergy_zip'] = pd.to_numeric(drugcomb_df['synergy_zip'], errors='coerce')
         drugcomb_df = drugcomb_df.dropna(subset=['synergy_zip'])
-        drugcomb_df = drugcomb_df[drugcomb_df['synergy_zip'] >= 0]
-        #print("Shape after filtering out antagonistic zip: ", drugcomb_df.shape)
 
     # Convert all values in drug_row and drug_col to lowercase
     drugcomb_df['drug_row'] = drugcomb_df['drug_row'].str.lower()
     drugcomb_df['drug_col'] = drugcomb_df['drug_col'].str.lower()
-    
-    # TODO: Drop columns that are not needed
-
-    # TODO: Determine if want to do something with CSS or RI
         
     print("Final shape of filtered drugcomb data: ", drugcomb_df.shape)
 
@@ -343,3 +330,46 @@ def rank_drug_pairs(drug_pair_to_similarity):
     zipped.sort(key=lambda x: x[1], reverse=True)
     return zipped
 
+
+def jonckheere_terpestra_test(samples):
+    """
+    Perform the Jonckheere-Terpstra test on the given samples.
+
+    Parameters:
+        samples: An array of arrays, where each inner array is a group containing the samples.
+
+    Returns:
+        A tuple containing the test statistic and the p-value.
+    """
+    
+    if not samples or len(samples) < 2:
+        raise ValueError("At least two groups are required")
+    
+    jt_stat = 0 # initialize the test statistic
+    n_i = [len(sample) for sample in samples] # get group sizes
+    N = sum(n_i) # total number of samples
+
+    for i in range(len(samples) - 1): # for each group
+        for j in range(i + 1, len(samples)): # compare with all other groups
+            for first_sample in samples[i]: # for each sample in the first group
+                for second_sample in samples[j]: # for each sample in the second group
+                    if first_sample < second_sample:
+                        jt_stat += 1
+                    elif first_sample == second_sample:
+                        jt_stat += 0.5
+
+    # Calculate mean under null hypothesis
+    mean = ((N**2) - sum(size**2 for size in n_i)) / 4
+    
+    # Calculate variance under null hypothesis
+    term1 = N**2 * (2*N + 3)
+    term2 = sum(size**2 * (2*size + 3) for size in n_i)
+    variance = (term1 - term2) / 72
+
+    # Calculate standardized statistic
+    z_stat = (jt_stat - mean) / math.sqrt(variance)
+
+    # Calculate one-tail p-value
+    p_value = 1 - norm.cdf(z_stat)
+    
+    return z_stat, p_value
