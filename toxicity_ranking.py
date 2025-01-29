@@ -370,6 +370,6 @@ def jonckheere_terpestra_test(samples):
     z_stat = (jt_stat - mean) / math.sqrt(variance)
 
     # Calculate one-tail p-value
-    p_value = 1 - norm.cdf(z_stat)
+    p_value = 1.0 - norm.cdf(z_stat)
     
     return z_stat, p_value
