@@ -13,6 +13,7 @@ torchvision>=0.10.1
 transformers>=4.42.3
 scikit-learn>=0.24.2
 scikit-posthocs>=0.8.1
+statsmodels>=0.12.2
 PubChemPy>=1.0
 RDKit>=2022.09.1
 xlrd>=2.0.1
