@@ -196,6 +196,87 @@ def find_drugcomb_ddinter_intersect(drugcomb_df, ddinter_df):
     return drug_syntox_df, intersection_major_pairs, intersection_moderate_pairs, intersection_minor_pairs, intersection_unknown_pairs
 
 
+# Filter the drugcomb data -- remove the drugs that are not in the DrugBank data
+# INPUT:
+#   drugcomb_df: (DataFrame) the DrugComb data
+#   drugbank_ddi_df: (DataFrame) the DrugBank drug-drug interaction data
+# OUTPUT:
+#   drugbank_syntox_df: (DataFrame) the filtered drug comb data
+#   intersection_major_pairs: (set) - drugcomb pairs with major severity in DrugBank
+#   intersection_moderate_pairs: (set) - drugcomb pairs with moderate severity in DrugBank 
+#   intersection_minor_pairs: (set) - drugcomb pairs with minor severity in DrugBank
+#   intersection_unknown_pairs: (set) - drugcomb pairs with unknown severity in DrugBank
+def find_drugcomb_drugbankddi_intersect(drugcomb_df, drugbank_ddi_df):
+    # Get the set of drugs in the drugcomb data and the drugbank data
+    drugcomb_drugs = set(drugcomb_df['drug_row']).union(set(drugcomb_df['drug_col']))
+    drugbank_drugs = set(drugbank_ddi_df['subject_drug_name']).union(set(drugbank_ddi_df['affected_drug_name']))
+    common_drugs = drugbank_drugs.intersection(drugcomb_drugs)
+
+    # Create filtered drugcomb data that includes only drugs that are in the intersection and the synergy scores
+    drugbank_syntox_df = pd.DataFrame(columns=['drug_row', 'drug_col', 'cell_line_name', 'synergy_zip', 'synergy_loewe', 'synergy_bliss', 'synergy_hsa', 'toxicity_category'])
+
+    # Print how many drugs are common between drugcomb and drugbank
+    print("Number of drugs in common between drugcomb and drugbank [lowercase enforced]: ", len(common_drugs))
+
+    # Want to find the common drug pairs between drugcomb and drugbank
+    drugbank_major_pairs_both_ways = set()
+    drugbank_moderate_pairs_both_ways = set()
+    drugbank_minor_pairs_both_ways = set()
+    for index, row in drugbank_ddi_df.iterrows():
+        drug_a = row['subject_drug_name']
+        drug_b = row['affected_drug_name']
+        if row['severity'] == 0:
+            drugbank_minor_pairs_both_ways.add((drug_a, drug_b))
+            drugbank_minor_pairs_both_ways.add((drug_b, drug_a))
+        elif row['severity'] == 1:
+            drugbank_moderate_pairs_both_ways.add((drug_a, drug_b))
+            drugbank_moderate_pairs_both_ways.add((drug_b, drug_a))
+        elif row['severity'] == 2:
+            drugbank_major_pairs_both_ways.add((drug_a, drug_b))
+            drugbank_major_pairs_both_ways.add((drug_b, drug_a))
+        else:
+            print("severity is: " + str(row['severity']))
+    
+    intersection_major_pairs = set()
+    intersection_moderate_pairs = set()
+    intersection_minor_pairs = set()
+    intersection_unknown_pairs = set()
+    for index, row in drugcomb_df.iterrows():
+        drug_pair = (row['drug_row'], row['drug_col'])
+        reverse_drug_pair = (row['drug_col'], row['drug_row'])
+        if drug_pair in drugbank_major_pairs_both_ways and reverse_drug_pair not in intersection_major_pairs:
+            intersection_major_pairs.add(drug_pair)
+            row_to_add = [row['drug_row'], row['drug_col'], row['cell_line_name'], row['synergy_zip'], row['synergy_loewe'], row['synergy_bliss'], row['synergy_hsa'], 'Major']
+            drugbank_syntox_df = pd.concat([drugbank_syntox_df, pd.DataFrame([row_to_add], columns=['drug_row', 'drug_col', 'cell_line_name', 'synergy_zip', 'synergy_loewe', 'synergy_bliss', 'synergy_hsa', 'toxicity_category'])])
+        elif drug_pair in drugbank_moderate_pairs_both_ways and reverse_drug_pair not in intersection_moderate_pairs:
+            intersection_moderate_pairs.add(drug_pair)
+            row_to_add = [row['drug_row'], row['drug_col'], row['cell_line_name'], row['synergy_zip'], row['synergy_loewe'], row['synergy_bliss'], row['synergy_hsa'], 'Moderate']
+            drugbank_syntox_df = pd.concat([drugbank_syntox_df, pd.DataFrame([row_to_add], columns=['drug_row', 'drug_col', 'cell_line_name', 'synergy_zip', 'synergy_loewe', 'synergy_bliss', 'synergy_hsa', 'toxicity_category'])])
+        elif drug_pair in drugbank_minor_pairs_both_ways and reverse_drug_pair not in intersection_minor_pairs:
+            intersection_minor_pairs.add(drug_pair)
+            row_to_add = [row['drug_row'], row['drug_col'], row['cell_line_name'], row['synergy_zip'], row['synergy_loewe'], row['synergy_bliss'], row['synergy_hsa'], 'Minor']
+            drugbank_syntox_df = pd.concat([drugbank_syntox_df, pd.DataFrame([row_to_add], columns=['drug_row', 'drug_col', 'cell_line_name', 'synergy_zip', 'synergy_loewe', 'synergy_bliss', 'synergy_hsa', 'toxicity_category'])])
+        else:
+            if drug_pair not in intersection_unknown_pairs and reverse_drug_pair not in intersection_unknown_pairs:
+                intersection_unknown_pairs.add(drug_pair)
+                row_to_add = [row['drug_row'], row['drug_col'], row['cell_line_name'], row['synergy_zip'], row['synergy_loewe'], row['synergy_bliss'], row['synergy_hsa'], 'Unknown']
+                drugbank_syntox_df = pd.concat([drugbank_syntox_df, pd.DataFrame([row_to_add], columns=['drug_row', 'drug_col', 'cell_line_name', 'synergy_zip', 'synergy_loewe', 'synergy_bliss', 'synergy_hsa', 'toxicity_category'])])
+            else:
+                continue
+    
+    print("Major pairs in both DrugComb and in DrugBank: ", len(intersection_major_pairs))
+    print("Moderate pairs in both DrugComb and in DrugBank: ", len(intersection_moderate_pairs))
+    print("Minor pairs in both DrugComb and in DrugBank: ", len(intersection_minor_pairs))
+    print("Unknown toxicity pairs in both DrugComb and in DrugBank: ", len(intersection_unknown_pairs))
+
+    total_num_common_pairs = len(intersection_unknown_pairs) + len(intersection_major_pairs) + \
+          len(intersection_moderate_pairs) + len(intersection_minor_pairs)
+
+    print("Total common pairs: ", total_num_common_pairs)
+    print("Total known pairs: ", total_num_common_pairs - len(intersection_unknown_pairs))
+
+    return drugbank_syntox_df, intersection_major_pairs, intersection_moderate_pairs, intersection_minor_pairs, intersection_unknown_pairs
+
 
 # Get the drug name to all unique side effects dictionary
 # INPUT:
