@@ -3,15 +3,62 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 
+# Get DrugBank DDI dataframe
+# INPUT:
+#   None
+# OUTPUT:
+#   drugbank_ddi_df: (DataFrame) the DrugBank drug-drug interaction data
+def get_drugbank_ddi():
+    drugbank_ddi_fp = 'data/DrugBank/u_Brown_DrugBank_CSV/structured_drug_interactions.csv'
+    drugbank_ddi_df = pd.read_csv(drugbank_ddi_fp)
+
+    # Answer a few questions about the dataset to begin with?
+    print('How many interactions are in each severity category in the drugbank database?')
+    print(drugbank_ddi_df['severity'].value_counts())
+
+    # make all drug names lowercase
+    drugbank_ddi_df['subject_drug_name'] = drugbank_ddi_df['subject_drug_name'].str.lower()
+    drugbank_ddi_df['affected_drug_name'] = drugbank_ddi_df['affected_drug_name'].str.lower()
+
+    # create a dataframe mapping 
+    subject_drug_df = drugbank_ddi_df[['subject_drug_id', 'subject_drug_drugbank_id', 'subject_drug_name']]
+    subject_drug_df = subject_drug_df.drop_duplicates()
+    subject_drug_df = subject_drug_df.reset_index(drop=True)
+    subject_drug_df.columns = ['drug_id', 'drugbank_id', 'drug_name']
+    affected_drug_df = drugbank_ddi_df[['affected_drug_id', 'affected_drug_drugbank_id', 'affected_drug_name']]
+    affected_drug_df = affected_drug_df.drop_duplicates()
+    affected_drug_df = affected_drug_df.reset_index(drop=True)
+    affected_drug_df.columns = ['drug_id', 'drugbank_id', 'drug_name']
+    drugbank_drug_ids_to_names = pd.concat([subject_drug_df, affected_drug_df], axis=0)
+    drugbank_drug_ids_to_names = drugbank_drug_ids_to_names.drop_duplicates()
+    drugbank_drug_ids_to_names = drugbank_drug_ids_to_names.reset_index(drop=True)
+    drugbank_drug_ids_to_names.to_csv('data_processed/drugbank_drug_ids_to_names.csv', index=False)
+
+    # drop rows where subject_drug_name or affected_drug_name is NaN
+    drugbank_ddi_df = drugbank_ddi_df.dropna(subset=['subject_drug_name', 'affected_drug_name'])
+    # drop rows where subject_drug_name or affected_drug_name is empty
+    drugbank_ddi_df = drugbank_ddi_df[drugbank_ddi_df['subject_drug_name'] != '']
+    drugbank_ddi_df = drugbank_ddi_df[drugbank_ddi_df['affected_drug_name'] != '']
+    
+    # print the shape of the dataframe
+    print('Shape of drugbank ddi dataframe: ', drugbank_ddi_df.shape)
+
+    drugbank_ddi_df.to_csv('data_processed/drugbank_ddi.csv', index=False)
+
+    return drugbank_ddi_df, drugbank_drug_ids_to_names
+
 # Get the drug comb data
 # INPUT:
-#   bliss: (bool) whether to filter out the antagonistic values for the bliss modality
-#   loewe: (bool) whether to filter out the antagonistic values for the loewe modality
-#   hsa: (bool) whether to filter out the antagonistic values for the hsa modality
-#   zip: (bool) whether to filter out the antagonistic values for the zip modality
+#   bliss: (bool) whether to drop NA values for bliss modality
+#   hsa: (bool) whether to drop NA values for hsa modality
+#   loewe: (bool) whether to drop NA values for loewe modality
+#   s_mean: (bool) whether to drop NA values for s_mean modality
+#   s_max: (bool) whether to drop NA values for s_max modality
+#   s_sum: (bool) whether to drop NA values for s_sum modality
+#   zip: (bool) whether to drop NA values for zip modality
 # OUTPUT:
 #   drug_comb_data: (DataFrame) the drug comb data
-def get_drug_comb_data(bliss=False, loewe=False, hsa=False, zip=False):
+def get_drug_comb_data(bliss=False, hsa=False, loewe=False, s_mean=False, s_max=False, s_sum=False, zip=False):
     # Read the drug comb data
     drugcomb_df = pd.read_csv('data/DrugComb/drugcomb_summary_v_1_5.csv', sep=',', index_col=False)
     print("Original shape of drugcomb data: ", drugcomb_df.shape)
@@ -39,12 +86,21 @@ def get_drug_comb_data(bliss=False, loewe=False, hsa=False, zip=False):
         # drop any rows where synergy_bliss cannot be converted to a number
         drugcomb_df['synergy_bliss'] = pd.to_numeric(drugcomb_df['synergy_bliss'], errors='coerce')
         drugcomb_df = drugcomb_df.dropna(subset=['synergy_bliss'])
-    if loewe:
-        drugcomb_df['synergy_loewe'] = pd.to_numeric(drugcomb_df['synergy_loewe'], errors='coerce')
-        drugcomb_df = drugcomb_df.dropna(subset=['synergy_loewe'])
     if hsa:
         drugcomb_df['synergy_hsa'] = pd.to_numeric(drugcomb_df['synergy_hsa'], errors='coerce')
         drugcomb_df = drugcomb_df.dropna(subset=['synergy_hsa'])
+    if loewe:
+        drugcomb_df['synergy_loewe'] = pd.to_numeric(drugcomb_df['synergy_loewe'], errors='coerce')
+        drugcomb_df = drugcomb_df.dropna(subset=['synergy_loewe'])
+    if s_mean:
+        drugcomb_df['S_mean'] = pd.to_numeric(drugcomb_df['S_mean'], errors='coerce')
+        drugcomb_df = drugcomb_df.dropna(subset=['S_mean'])
+    if s_max:
+        drugcomb_df['S_max'] = pd.to_numeric(drugcomb_df['S_max'], errors='coerce')
+        drugcomb_df = drugcomb_df.dropna(subset=['S_max'])
+    if s_sum:
+        drugcomb_df['S_sum'] = pd.to_numeric(drugcomb_df['S_sum'], errors='coerce')
+        drugcomb_df = drugcomb_df.dropna(subset=['S_sum'])
     if zip:
         drugcomb_df['synergy_zip'] = pd.to_numeric(drugcomb_df['synergy_zip'], errors='coerce')
         drugcomb_df = drugcomb_df.dropna(subset=['synergy_zip'])
@@ -55,26 +111,9 @@ def get_drug_comb_data(bliss=False, loewe=False, hsa=False, zip=False):
         
     print("Final shape of filtered drugcomb data: ", drugcomb_df.shape)
 
+    drugcomb_df.to_csv('data_processed/drugcomb_data.csv', index=False)
+
     return drugcomb_df
-
-
-# Get the SIDER data
-# INPUT:
-#   None
-# OUTPUT:
-#   sider_cid_to_drugs_df: (DataFrame) the CID to drug name mapping
-#   sider_all_side_effects_df: (DataFrame) the SIDER side effects data
-def get_sider_data():
-    # Read the SIDER data
-    sider_cid_to_drugs_df = pd.read_csv('data/SIDER4.1/drug_names.tsv', sep='\t', index_col=False)
-    sider_cid_to_drugs_df.columns = ["CID", "drug_name"]
-
-    # Convert all drug_name to lowercase
-    sider_cid_to_drugs_df['drug_name'] = sider_cid_to_drugs_df['drug_name'].str.lower()
-
-    sider_all_side_effects_df = pd.read_csv('data/SIDER4.1/meddra_all_se.tsv', sep='\t', index_col=False)
-    sider_all_side_effects_df.columns = ["CID_FLAT", "CID_STEREO", "UMLS_Label", "MedDRA_Concept", "UMLS_MedDRA", "Side_Effect"]
-    return sider_cid_to_drugs_df, sider_all_side_effects_df
 
 
 # Get the DDInter data
@@ -107,6 +146,18 @@ def get_ddinter_data():
 
     # Remove duplicates
     ddinter_df = ddinter_df.drop_duplicates()
+
+    # Drop rows where Drug_A or Drug_B is NaN
+    ddinter_df = ddinter_df.dropna(subset=['Drug_A', 'Drug_B'])
+    # Drop rows where Drug_A or Drug_B is empty
+    ddinter_df = ddinter_df[ddinter_df['Drug_A'] != '']
+    ddinter_df = ddinter_df[ddinter_df['Drug_B'] != '']
+    # Drop rows where Drug_A or Drug_B is 'nan'
+    ddinter_df = ddinter_df[ddinter_df['Drug_A'] != 'nan']
+    ddinter_df = ddinter_df[ddinter_df['Drug_B'] != 'nan']
+
+    print("DDInter Shape without NA values: " + str(ddinter_df.shape))
+    ddinter_df.to_csv('data_processed/ddinter_data.csv', index=False)
 
     return ddinter_df
 
@@ -278,71 +329,6 @@ def find_drugcomb_drugbankddi_intersect(drugcomb_df, drugbank_ddi_df):
     return drugbank_syntox_df, intersection_major_pairs, intersection_moderate_pairs, intersection_minor_pairs, intersection_unknown_pairs
 
 
-# Get the drug name to all unique side effects dictionary
-# INPUT:
-#   sider_cid_to_drugs_df: (DataFrame) the CID to drug name mapping
-#   sider_all_side_effects_df: (DataFrame) the SIDER side effects data
-# OUTPUT:
-#   drug_name_to_side_effects: (dict) the drug name to all unique side effects dictionary
-# Get the unique side effect set for each drug
-def get_drug_to_side_effects(sider_cid_to_drugs_df, sider_all_side_effects_df):
-    drug_name_to_side_effects = {}
-
-    # Loop through each CID in the sider_cid_to_drugs_df
-    for index, row in sider_cid_to_drugs_df.iterrows():
-        # Get the CID
-        CID = row['CID']
-        # Get the drug name
-        drug_name = row['drug_name']
-        # Get the side effects for the CID
-        side_effects = sider_all_side_effects_df[sider_all_side_effects_df['CID_FLAT'] == CID]['Side_Effect'].values
-        # Store the side effects in the dictionary
-        drug_name_to_side_effects[drug_name] = set(side_effects)
-
-    return drug_name_to_side_effects
-
-
-# Filter the drugcomb data -- remove the drugs that are not in the SIDER data
-# INPUT:
-#   drugcomb_df: (DataFrame) the drug comb data
-#   sider_cid_to_drugs_df: (DataFrame) the CID to drug name mapping
-# OUTPUT:
-#   filtered_drug_comb_data: (DataFrame) the filtered drug comb data
-#   common_drugs: (set) the set of common drugs in the drugcomb data and the SIDER data
-#   unique_drug_pairs: (set) the set of unique drug pairs in the filtered drug comb data
-def filter_drug_comb_data_by_sider(drugcomb_df, sider_cid_to_drugs_df):
-    # Print the shape of the drugcomb data
-    print("Original drugcomb data shape: ", drugcomb_df.shape)
-
-    # Get the set of drugs in the drugcomb data and the SIDER data
-    drugcomb_drugs = set(drugcomb_df['drug_row']).union(set(drugcomb_df['drug_col']))
-    sider_drugs = set(sider_cid_to_drugs_df['drug_name'])
-    common_drugs = sider_drugs.intersection(drugcomb_drugs)
-
-    # Print how many drugs are common between drugcomb and sider
-    print("Number of drugs in common between drugcomb and sider [lowercase enforced]: ", len(common_drugs))
-
-    # Filter drugcomb data to only include drugs that are in the intersection
-    filtered_drug_comb_data = drugcomb_df[(drugcomb_df['drug_row'].str.lower().isin(common_drugs)) & \
-                                        (drugcomb_df['drug_col'].str.lower().isin(common_drugs))]
-    
-    # Print the shape of the filtered drugcomb data
-    print("Filtered drugcomb data shape for both drugs being present in sider: ", filtered_drug_comb_data.shape)
-
-    # How many unique drug pairs are there?
-    unique_drug_pairs = set()
-
-    for drug_row, drug_col in filtered_drug_comb_data[['drug_row', 'drug_col']].values:
-        pair_one = (drug_row, drug_col)
-        pair_two = (drug_col, drug_row)
-        if pair_one not in unique_drug_pairs and pair_two not in unique_drug_pairs:
-            unique_drug_pairs.add(pair_one)
-
-    print("Number of unique drug pairs: ", len(unique_drug_pairs))
-
-    return filtered_drug_comb_data, common_drugs, unique_drug_pairs
-
-
 # Get the Jaccard similarity of two sets
 # INPUT:
 #   set1: (set) the first set
@@ -356,61 +342,6 @@ def jaccard_similarity(set1, set2):
     union = len(set1.union(set2))
     # Return the Jaccard similarity
     return intersection / union
-
-
-# Get the Jaccard similarity of all drug pairs
-# INPUT:
-#   unique_drug_pairs: (set) the set of unique drug pairs
-#   sider_cid_to_drugs_df: (DataFrame) the CID to drug name mapping
-#   sider_all_side_effects_df: (DataFrame) the SIDER side effects data
-# OUTPUT:
-#   drug_pair_to_jaccard: (dict) the drug pair to Jaccard similarity dictionary
-#   drug_pair_to_side_effects: (dict) the drug pair to side effects dictionary
-def drug_pair_to_jaccard_similarity(
-    unique_drug_pairs,
-    sider_cid_to_drugs_df,
-    sider_all_side_effects_df,
-):
-    # Create a dictionary to store the Jaccard similarity of each drug pair
-    drug_pair_to_jaccard = {}
-    drug_pair_to_side_effects = {}
-
-    # Loop through each drug pair in unique_drug_pairs
-    for drug_pair in unique_drug_pairs:
-        # Get the drugs in the pair
-        drug1_name, drug2_name = drug_pair
-        drug1_CID = sider_cid_to_drugs_df[sider_cid_to_drugs_df['drug_name'] == drug1_name]['CID'].values[0]
-        drug2_CID = sider_cid_to_drugs_df[sider_cid_to_drugs_df['drug_name'] == drug2_name]['CID'].values[0]
-
-        # Get the side effects of each drug
-        side_effects1 = sider_all_side_effects_df[sider_all_side_effects_df['CID_FLAT'] == drug1_CID]['Side_Effect'].values
-        side_effects2 = sider_all_side_effects_df[sider_all_side_effects_df['CID_FLAT'] == drug2_CID]['Side_Effect'].values
-
-        # Calculate the Jaccard similarity of the side effects
-        jaccard = jaccard_similarity(set(side_effects1), set(side_effects2))
-
-        # Store the Jaccard similarity in the dictionary
-        drug_pair_to_jaccard[drug_pair] = jaccard
-        drug_pair_to_side_effects[drug_pair] = (side_effects1, side_effects2)
-
-    return drug_pair_to_jaccard, drug_pair_to_side_effects
-
-
-# Get rank based on similarity values
-# INPUT:
-#   drug_pair_to_similarity: (dict) the drug pair to some similarity value dictionary
-# OUTPUT:
-#   ranked_drug_pairs: (list) the ranked drug pairs based on Jaccard similarity
-def rank_drug_pairs(drug_pair_to_similarity):
-    # zip the drug pairs and their similarities
-    drug_pairs = list(drug_pair_to_similarity.keys())
-    similarity_values = list(drug_pair_to_similarity.values())
-    zipped = list(zip(drug_pairs, similarity_values))
-
-    # sort the zipped list by similarity value
-    zipped.sort(key=lambda x: x[1], reverse=True)
-    return zipped
-
 
 def jonckheere_terpestra_test(samples):
     """
@@ -454,3 +385,144 @@ def jonckheere_terpestra_test(samples):
     p_value = 1.0 - norm.cdf(z_stat)
     
     return z_stat, p_value
+
+
+####################################### DEPRECATED METHODS #######################################
+# Get the SIDER data - DEPRECATED for analysis
+# INPUT:
+#   None
+# OUTPUT:
+#   sider_cid_to_drugs_df: (DataFrame) the CID to drug name mapping
+#   sider_all_side_effects_df: (DataFrame) the SIDER side effects data
+def get_sider_data():
+    # Read the SIDER data
+    sider_cid_to_drugs_df = pd.read_csv('data/SIDER4.1/drug_names.tsv', sep='\t', index_col=False)
+    sider_cid_to_drugs_df.columns = ["CID", "drug_name"]
+
+    # Convert all drug_name to lowercase
+    sider_cid_to_drugs_df['drug_name'] = sider_cid_to_drugs_df['drug_name'].str.lower()
+
+    sider_all_side_effects_df = pd.read_csv('data/SIDER4.1/meddra_all_se.tsv', sep='\t', index_col=False)
+    sider_all_side_effects_df.columns = ["CID_FLAT", "CID_STEREO", "UMLS_Label", "MedDRA_Concept", "UMLS_MedDRA", "Side_Effect"]
+    return sider_cid_to_drugs_df, sider_all_side_effects_df
+
+# Get the drug name to all unique side effects dictionary - DEPRECATED for analysis
+# INPUT:
+#   sider_cid_to_drugs_df: (DataFrame) the CID to drug name mapping
+#   sider_all_side_effects_df: (DataFrame) the SIDER side effects data
+# OUTPUT:
+#   drug_name_to_side_effects: (dict) the drug name to all unique side effects dictionary
+# Get the unique side effect set for each drug
+def get_drug_to_side_effects(sider_cid_to_drugs_df, sider_all_side_effects_df):
+    drug_name_to_side_effects = {}
+
+    # Loop through each CID in the sider_cid_to_drugs_df
+    for index, row in sider_cid_to_drugs_df.iterrows():
+        # Get the CID
+        CID = row['CID']
+        # Get the drug name
+        drug_name = row['drug_name']
+        # Get the side effects for the CID
+        side_effects = sider_all_side_effects_df[sider_all_side_effects_df['CID_FLAT'] == CID]['Side_Effect'].values
+        # Store the side effects in the dictionary
+        drug_name_to_side_effects[drug_name] = set(side_effects)
+
+    return drug_name_to_side_effects
+
+
+# Filter the drugcomb data -- remove the drugs that are not in the SIDER data - DEPRECATED for analysis
+# INPUT:
+#   drugcomb_df: (DataFrame) the drug comb data
+#   sider_cid_to_drugs_df: (DataFrame) the CID to drug name mapping
+# OUTPUT:
+#   filtered_drug_comb_data: (DataFrame) the filtered drug comb data
+#   common_drugs: (set) the set of common drugs in the drugcomb data and the SIDER data
+#   unique_drug_pairs: (set) the set of unique drug pairs in the filtered drug comb data
+def filter_drug_comb_data_by_sider(drugcomb_df, sider_cid_to_drugs_df):
+    # Print the shape of the drugcomb data
+    print("Original drugcomb data shape: ", drugcomb_df.shape)
+
+    # Get the set of drugs in the drugcomb data and the SIDER data
+    drugcomb_drugs = set(drugcomb_df['drug_row']).union(set(drugcomb_df['drug_col']))
+    sider_drugs = set(sider_cid_to_drugs_df['drug_name'])
+    common_drugs = sider_drugs.intersection(drugcomb_drugs)
+
+    # Print how many drugs are common between drugcomb and sider
+    print("Number of drugs in common between drugcomb and sider [lowercase enforced]: ", len(common_drugs))
+
+    # Filter drugcomb data to only include drugs that are in the intersection
+    filtered_drug_comb_data = drugcomb_df[(drugcomb_df['drug_row'].str.lower().isin(common_drugs)) & \
+                                        (drugcomb_df['drug_col'].str.lower().isin(common_drugs))]
+    
+    # Print the shape of the filtered drugcomb data
+    print("Filtered drugcomb data shape for both drugs being present in sider: ", filtered_drug_comb_data.shape)
+
+    # How many unique drug pairs are there?
+    unique_drug_pairs = set()
+
+    for drug_row, drug_col in filtered_drug_comb_data[['drug_row', 'drug_col']].values:
+        pair_one = (drug_row, drug_col)
+        pair_two = (drug_col, drug_row)
+        if pair_one not in unique_drug_pairs and pair_two not in unique_drug_pairs:
+            unique_drug_pairs.add(pair_one)
+
+    print("Number of unique drug pairs: ", len(unique_drug_pairs))
+
+    return filtered_drug_comb_data, common_drugs, unique_drug_pairs
+
+
+
+# Get the Jaccard similarity of all drug pairs - DEPRECATED for analysis
+# INPUT:
+#   unique_drug_pairs: (set) the set of unique drug pairs
+#   sider_cid_to_drugs_df: (DataFrame) the CID to drug name mapping
+#   sider_all_side_effects_df: (DataFrame) the SIDER side effects data
+# OUTPUT:
+#   drug_pair_to_jaccard: (dict) the drug pair to Jaccard similarity dictionary
+#   drug_pair_to_side_effects: (dict) the drug pair to side effects dictionary
+def drug_pair_to_jaccard_similarity(
+    unique_drug_pairs,
+    sider_cid_to_drugs_df,
+    sider_all_side_effects_df,
+):
+    # Create a dictionary to store the Jaccard similarity of each drug pair
+    drug_pair_to_jaccard = {}
+    drug_pair_to_side_effects = {}
+
+    # Loop through each drug pair in unique_drug_pairs
+    for drug_pair in unique_drug_pairs:
+        # Get the drugs in the pair
+        drug1_name, drug2_name = drug_pair
+        drug1_CID = sider_cid_to_drugs_df[sider_cid_to_drugs_df['drug_name'] == drug1_name]['CID'].values[0]
+        drug2_CID = sider_cid_to_drugs_df[sider_cid_to_drugs_df['drug_name'] == drug2_name]['CID'].values[0]
+
+        # Get the side effects of each drug
+        side_effects1 = sider_all_side_effects_df[sider_all_side_effects_df['CID_FLAT'] == drug1_CID]['Side_Effect'].values
+        side_effects2 = sider_all_side_effects_df[sider_all_side_effects_df['CID_FLAT'] == drug2_CID]['Side_Effect'].values
+
+        # Calculate the Jaccard similarity of the side effects
+        jaccard = jaccard_similarity(set(side_effects1), set(side_effects2))
+
+        # Store the Jaccard similarity in the dictionary
+        drug_pair_to_jaccard[drug_pair] = jaccard
+        drug_pair_to_side_effects[drug_pair] = (side_effects1, side_effects2)
+
+    return drug_pair_to_jaccard, drug_pair_to_side_effects
+
+
+# Get rank based on similarity values - DEPRECATED for analysis
+# INPUT:
+#   drug_pair_to_similarity: (dict) the drug pair to some similarity value dictionary
+# OUTPUT:
+#   ranked_drug_pairs: (list) the ranked drug pairs based on Jaccard similarity
+def rank_drug_pairs(drug_pair_to_similarity):
+    # zip the drug pairs and their similarities
+    drug_pairs = list(drug_pair_to_similarity.keys())
+    similarity_values = list(drug_pair_to_similarity.values())
+    zipped = list(zip(drug_pairs, similarity_values))
+
+    # sort the zipped list by similarity value
+    zipped.sort(key=lambda x: x[1], reverse=True)
+    return zipped
+
+
