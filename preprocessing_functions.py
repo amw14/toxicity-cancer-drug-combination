@@ -249,6 +249,8 @@ def parse_drugbank_xml(xml_file='data/DrugBank/full database.xml'):
     # Create DataFrame
     df = pd.DataFrame(drug_target_pairs)
 
+    df['drug_name'] = df['drug_name'].str.lower() # lower case
+
     # Create 'SMILES' column based on drug_smiles dictionary
     df['SMILES'] = df['drug_name'].map(drug_smiles_dict)
 
