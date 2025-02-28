@@ -619,9 +619,10 @@ def find_drugcomb_drugbankddi_intersect(drugcomb_df, drugbank_ddi_df):
     print("Total known pairs: ", total_num_common_pairs - len(intersection_unknown_pairs))
 
     # Save the known toxicity data to a csv file, all of these are known
-    drugbank_syntox_df.to_csv('data_processed/drugbank_syntox_known.csv', index=False)
+    known_syntox_df = drugbank_syntox_df[drugbank_syntox_df['toxicity_category'] != 'Unknown']
+    known_syntox_df.to_csv('data_processed/drugbank_syntox_known.csv', index=False)
 
-    return drugbank_syntox_df, intersection_major_pairs, intersection_moderate_pairs, intersection_minor_pairs, intersection_unknown_pairs
+    return known_syntox_df, intersection_major_pairs, intersection_moderate_pairs, intersection_minor_pairs, intersection_unknown_pairs
 
 
 # Get the Jaccard similarity of two sets
