@@ -36,3 +36,10 @@
     - Then finds intersection by mapping UniProtIDs to STRING IDs, storing all drug targets from DDInter + DrugComb + DrugBank Target + Reactome Lowest/All Pathways + STRING in 'data_processed/ddinter_syntoxtarg_lowestpw_string.csv' and 'data_processed/ddinter_syntoxtarg_allpw_string.csv' respectively
     - Then finds the drug combinations that contain all information between DDInter + DrugComb + DrugBank Target + Reactome Lowest/All Pathways + STRING with the average target distance, stored in 'data_processed/ddinter_processed_combos_syntoxtargallpw_string.csv'
     - Note, did not have to additionally filter by SMILES/Morgan Fingerprint representations because found all of these for DDInter
+- Run drugbank_parse_toxsyntarpathstring_intersection.ipynb
+    - Adds in some missing DrugBank Target information, from the academic licensed version of DrugBank, stores all drug targets from the (known DDInter + DrugComb + DrugBank Target) intersection in 'data_processed/drugbank_syntoxtarg.csv'
+    - Creates mapping of target proteins to UniProtIDs for mapping to Reactome Pathways/STRING, stored in 'drugbank_syntoxtarg_UniprotIDs.txt'
+    - Finds intersection with Reactome lowest and all pathways, stores all drug targets from known DDInter + DrugComb + DrugBank Target + Reactome Lowest/All Pathways intersection in 'data_processed/drugbank_syntoxtarg_lowestpw.csv' and 'data_processed/drugbank_syntoxtarg_allpw.csv' respectively
+    - Then finds intersection by mapping UniProtIDs to STRING IDs, storing all drug targets from DDInter + DrugComb + DrugBank Target + Reactome Lowest/All Pathways + STRING in 'data_processed/drugbank_syntoxtarg_lowestpw_string.csv' and 'data_processed/drugbank_syntoxtarg_allpw_string.csv' respectively
+    - Then finds the drug combinations that contain all information between DDInter + DrugComb + DrugBank Target + Reactome Lowest/All Pathways + STRING with the average target distance, stored in 'data_processed/drugbank_processed_combos_syntoxtargallpw_string.csv'
+    - Note, did not have filter by SMILES/Morgan Fingerprint representations because found all of these for DDInter
