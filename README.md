@@ -47,8 +47,8 @@
 ## Synergy Score and Toxicity Analysis: Create Figure 2 ##
 
 The first step of the analysis is to examine the relationship between synergy scores and toxicity. To do this and create the panels used in Figure 2 as well as Supplemental Figure S1, there are two files that need to be run:
-1. DrugBank: 'drugbank_toxsyn_distrib_stat.ipynb'
-2. DDInter: 'ddinter_toxsyn_distrib_stats.ipynb'
+1. DrugBank: 'drugbank_syntox_analysis.ipynb'
+2. DDInter: 'ddinter_syntox_analysis.ipynb'
 
 The figure files are stored in 'results/figure2/' and the statistics are stored in:
 - 'results/synergy_score_tox_categ_distrib/kruskal_dunn_jonck_majmodmin_syntox_drugbank.tsv'
