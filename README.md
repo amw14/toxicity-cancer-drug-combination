@@ -64,4 +64,10 @@ The second step of the analysis is to examine which drug targets and pathways co
 
 The figure files and statistical test results are stored in `results/jaccard_similarity_analysis/`
 
-## Toxicity Score Analysis:
+## Toxicity Score Analysis: Create Figure 5 ##
+
+Figure 5 has three major components:
+1. Assessing whether the average distance of targets on the STRING PPIN trends with toxicity levels -- run:
+- `ddinter_avg_string_distance_analysis.ipynb`
+- `drugbank_avg_string_distance_analysis.ipynb`
+2.
