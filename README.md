@@ -43,3 +43,19 @@
     - Then finds intersection by mapping UniProtIDs to STRING IDs, storing all drug targets from DDInter + DrugComb + DrugBank Target + Reactome Lowest/All Pathways + STRING in 'data_processed/drugbank_syntoxtarg_lowestpw_string.csv' and 'data_processed/drugbank_syntoxtarg_allpw_string.csv' respectively
     - Then finds the drug combinations that contain all information between DDInter + DrugComb + DrugBank Target + Reactome Lowest/All Pathways + STRING with the average target distance, stored in 'data_processed/drugbank_processed_combos_syntoxtargallpw_string.csv'
     - Note, did not have filter by SMILES/Morgan Fingerprint representations because found all of these for DDInter
+
+## Synergy Score and Toxicity Analysis: Create Figure 2 ##
+
+The first step of the analysis is to examine the relationship between synergy scores and toxicity. To do this and create the panels used in Figure 2 as well as Supplemental Figure S1, there are two files that need to be run:
+1. DrugBank: 'drugbank_toxsyn_distrib_stat.ipynb'
+2. DDInter: 'ddinter_toxsyn_distrib_stats.ipynb'
+
+The figure files are stored in 'results/figure2/' and the statistics are stored in:
+- 'results/synergy_score_tox_categ_distrib/kruskal_dunn_jonck_majmodmin_syntox_drugbank.tsv'
+- 'results/synergy_score_tox_categ_distrib/kruskal_dunn_jonck_majmodmin_syntox_ddinter.tsv'
+
+There are supplementary histograms and statistics stored in 'results/synergy_score_tox_categ_distrib' and 'results/synergy_score_distrib'
+
+## Drug Target and Pathway Analysis: Create Figure 3 ##
+
+The second step of the analysis is to examine which drug targets and pathways contribute to synergy scores and toxicity.
