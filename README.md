@@ -73,3 +73,6 @@ Figure 5 has three major components:
 2. Assessing whether overlapping drug structure trends with toxicity levels -- run:
 - `ddinter_deeptrasynergy_toxscore.ipynb`
 - `drugbank_deeptrasynergy_toxscore.ipynb`
+3. Assessing whether overlapping drug target protein neighborhoods on the STRING PPIN trends with toxicity levels -- run:
+- `ddinter_graphsynergy_toxscore.ipynb`
+- `drugbank_graphsynergy_toxscore.ipynb`
