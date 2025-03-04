@@ -70,4 +70,6 @@ Figure 5 has three major components:
 1. Assessing whether the average distance of targets on the STRING PPIN trends with toxicity levels -- run:
 - `ddinter_avg_string_distance_analysis.ipynb`
 - `drugbank_avg_string_distance_analysis.ipynb`
-2.
+2. Assessing whether overlapping drug structure trends with toxicity levels -- run:
+- `ddinter_deeptrasynergy_toxscore.ipynb`
+- `drugbank_deeptrasynergy_toxscore.ipynb`

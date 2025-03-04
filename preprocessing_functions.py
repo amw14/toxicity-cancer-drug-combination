@@ -201,6 +201,7 @@ def parse_drugbank_xml(xml_file='data/DrugBank/full database.xml'):
                 'UniProtKB_ID': None,
                 'GenAtlas_ID': None,
                 'HGNC_ID': None,
+                'SMILES': None,
             }
             
             # Get target name
@@ -238,6 +239,7 @@ def parse_drugbank_xml(xml_file='data/DrugBank/full database.xml'):
                 if drug_smiles is not None:
                     smiles_text = drug_smiles.text
                     if smiles_text != '' and smiles_text is not None:
+                        target_data['SMILES'] = smiles_text
                         if drug_name not in drug_smiles:
                             drug_smiles_dict[drug_name] = smiles_text
                         else:
@@ -250,9 +252,6 @@ def parse_drugbank_xml(xml_file='data/DrugBank/full database.xml'):
     df = pd.DataFrame(drug_target_pairs)
 
     df['drug_name'] = df['drug_name'].str.lower() # lower case
-
-    # Create 'SMILES' column based on drug_smiles dictionary
-    df['SMILES'] = df['drug_name'].map(drug_smiles_dict)
 
     df.to_csv('data_processed/drugbank_drug_targets.csv', index=False)
 
