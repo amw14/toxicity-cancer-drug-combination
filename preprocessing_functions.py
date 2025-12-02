@@ -677,3 +677,29 @@ def jonckheere_terpestra_test(samples):
     p_value = 1.0 - norm.cdf(z_stat)
     
     return z_stat, p_value
+
+# Calculates Cliff's Delta (non-parametric effect size for two groups).
+# INPUT: 
+#   x: (list or array-like) the first group of observations
+#   y: (list or array-like) the second group of observations
+# OUTPUT:
+#   delta: (float) the Cliff's Delta value
+def cliff_delta(x, y):
+    """
+    Calculates Cliff's Delta (non-parametric effect size for two groups).
+    Delta quantifies the probability that a randomly selected observation
+    from one group is larger/smaller than a randomly selected observation
+    from the other group.
+    """
+    x = np.asarray(x)
+    y = np.asarray(y)
+    n1 = len(x)
+    n2 = len(y)
+
+    # Initialize counter for concordant (c) and discordant (d) pairs
+    # Cliff's Delta is (c - d) / (n1 * n2) where c is x > y and d is y > x.
+    diff = x[:, None] - y
+    c = np.sum(diff > 0)
+    d = np.sum(diff < 0)
+    delta = (c - d) / (n1 * n2)
+    return delta
