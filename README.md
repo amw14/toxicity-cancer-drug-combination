@@ -1,6 +1,7 @@
 # Characterizing clinical toxicity in cancer combination therapies
 
-This repository contains the code used for "Characterizing clinical toxicity in cancer combination therapies". The paper is available on [bioRxiv](https://www.biorxiv.org/content/10.1101/2025.04.13.648641v1).
+This repository contains the code used for "Characterizing clinical toxicity in cancer combination therapies". The paper is available on [bioRxiv](https://www.biorxiv.org/content/10.1101/2025.04.13.648641v1). <img width="191" height="20" alt="image" src="https://github.com/user-attachments/assets/a2697017-4c15-46e7-9d30-dec9627f0f8f" />
+
 
 ## Preprocess the Databases ##
 
