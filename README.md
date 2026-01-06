@@ -1,4 +1,6 @@
-# Characterizing clinical toxicity in cancer combination therapies [![DOI](https://zenodo.org/badge/727986478.svg)](https://doi.org/10.5281/zenodo.18159238)
+# Characterizing clinical toxicity in cancer combination therapies 
+
+[![DOI](https://zenodo.org/badge/727986478.svg)](https://doi.org/10.5281/zenodo.18159238)
 
 This repository contains the code used for "Characterizing clinical toxicity in cancer combination therapies". The paper is available on [bioRxiv](https://www.biorxiv.org/content/10.1101/2025.04.13.648641v1).
 
