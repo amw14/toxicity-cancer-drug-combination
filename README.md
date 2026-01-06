@@ -1,4 +1,6 @@
-# toxicity-cancer-drug-combination
+# Characterizing clinical toxicity in cancer combination therapies
+
+This repository contains the code used for "Characterizing clinical toxicity in cancer combination therapies". The paper is available on [bioRxiv](https://www.biorxiv.org/content/10.1101/2025.04.13.648641v1).
 
 ## Preprocess the Databases ##
 
@@ -76,3 +78,28 @@ Figure 5 has three major components:
 3. Assessing whether overlapping drug target protein neighborhoods on the STRING PPIN trends with toxicity levels -- run:
 - `ddinter_graphsynergy_toxscore.ipynb`
 - `drugbank_graphsynergy_toxscore.ipynb`
+
+## Contact
+If you have any questions, or find any issues with the code, please open an issue in this repository. We also welcome any contributions to the code - be sure to checkout the Contributing section below.
+
+If you have questions or concerns with this project and do not want to create an issue, please contact [Alexandra Wong](mailto:alexandra_wong@brown.edu), [Cecile Meier-Scherling](cecile_meier-scherling@brown.edu), or [Lorin Crawford](mailto:lcrawford@microsoft.com).
+
+## Relevant Citation (BibTeX)
+If you use this code or method in your research, please consider citing the following:
+
+```
+@article {characterizing_toxicity,
+	author = {Wong, Alexandra M and Meier-Scherling, Cecile and Crawford, Lorin},
+	title = {Characterizing clinical toxicity in cancer combination therapies},
+	elocation-id = {2025.04.13.648641},
+	year = {2025},
+	doi = {10.1101/2025.04.13.648641},
+	publisher = {Cold Spring Harbor Laboratory},
+	URL = {https://www.biorxiv.org/content/early/2025/04/19/2025.04.13.648641},
+	eprint = {https://www.biorxiv.org/content/early/2025/04/19/2025.04.13.648641.full.pdf},
+	journal = {bioRxiv}
+}
+```
+## License
+
+This project is available under the MIT License.
